@@ -2,7 +2,7 @@
 #include <vector>
 using namespace std;
 
-//The program isn't dynamic. It's designed exactl for the case when the number of assets is 3
+//The program isn't dynamic. It's designed exactly for the case when the number of assets is 3
 
 double variance(double w1, double w2, double w3, const vector<vector<double>>& cov) {
     int var = w1*(cov[0][0]*w1+cov[0][1]*w2+cov[0][2]*w3)+w2*(cov[1][0]*w1+cov[1][1]*w2+cov[1][2]*w3)+w3*(cov[2][0]*w1+cov[2][1]*w2+cov[2][2]*w3);
