@@ -1,65 +1,57 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
+using namespace std;
 
-struct Stock {
-    std::string symbol;
-    double expectedReturn;
-    double volatility;
-};
+//The program isn't dynamic. It's designed exactl for the case when the number of assets is 3
 
-std::vector<double> calculateOptimizedWeightsMVO(const std::vector<Stock>& portfolio, double riskFreeRate, double targetReturn) {
-    size_t numAssets = portfolio.size();
-    std::vector<double> weights(numAssets, 0.0);
+double variance(double w1, double w2, double w3, const vector<vector<double>>& cov) {
+    int var = w1*(cov[0][0]*w1+cov[0][1]*w2+cov[0][2]*w3)+w2*(cov[1][0]*w1+cov[1][1]*w2+cov[1][2]*w3)+w3*(cov[2][0]*w1+cov[2][1]*w2+cov[2][2]*w3);
+    return var;
+}
 
-    std::vector<std::vector<double>> covarianceMatrix(numAssets, std::vector<double>(numAssets, 0.0));
-    for (size_t i = 0; i < numAssets; ++i) {
-        for (size_t j = 0; j < numAssets; ++j) {
-            double covariance = (i == j) ? portfolio[i].volatility * portfolio[i].volatility : 0.0;
-            covarianceMatrix[i][j] = covariance;
+double expectedPortfolioReturn(double w1, double w2, double w3, const vector<double>& expectedReturns) {
+    double ret = w1*expectedReturns[0]+w2*expectedReturns[1]+w3*expectedReturns[2];
+    return ret;
+}
+
+vector<double> calculateOptimizedWeightsMVO(const vector<double>& expectedReturn, const vector<vector<double>>& covarianceMatrix, double upperBound) {
+    size_t numAssets = expectedReturn.size();
+    vector<double> weights(numAssets, 0.0);
+
+    double weight1, weight2, weight3, maxExpPortRet, portfolioVariance, portfolioReturn = 0.00;
+    for(int i = 0; i < 100; i++) {
+        for(int j = 0; j < 100; j++) {
+            weight1 = (double)i/100;
+            weight2 = (double)j/100;
+            weight3 = (double)1 - weight1 - weight2;
+            double tempVar = variance(weight1, weight2, weight3, covarianceMatrix);
+            double tempRet = expectedPortfolioReturn(weight1,weight2,weight3, expectedReturn);
+            bool boolean = weight1>=0 && weight2 >= 0 && weight3 >= 0;
+            if(tempRet > maxExpPortRet && tempVar <= upperBound && boolean) {
+                maxExpPortRet = tempRet;
+                weights[0] = weight1;
+                weights[1] = weight2;
+                weights[2] = weight3;
+                portfolioVariance = tempVar;
+                portfolioReturn = tempRet;
+            }
         }
     }
-
-    double sumExpectedReturn = 0.0;
-    for (const Stock& stock : portfolio) {
-        sumExpectedReturn += stock.expectedReturn;
-    }
-
-    for (size_t i = 0; i < numAssets; ++i) {
-        double partialDerivative = (portfolio[i].expectedReturn - riskFreeRate) / sumExpectedReturn;
-        weights[i] = partialDerivative;
-    }
-
-    double totalWeight = 0.0;
-    for (size_t i = 0; i < numAssets; ++i) {
-        totalWeight += weights[i];
-    }
-
-    double adjustmentFactor = targetReturn / totalWeight;
-    for (size_t i = 0; i < numAssets; ++i) {
-        weights[i] *= adjustmentFactor;
-    }
-
+    cout << "The expected return of the optimal portfolio: " << portfolioReturn << endl;
+    cout << "The variance of the optimal portfolio return: " << portfolioVariance << endl;
     return weights;
 }
 
 int main() {
-    std::vector<Stock> portfolio = {
-            {"AAPL", 0.08, 0.2},
-            {"GOOG", 0.12, 0.3},
-            {"MSFT", 0.1, 0.25},
-            {"AMZN", 0.15, 0.35}
-    };
+    vector<double> expectedReturn = {0.02, 0.025, 0.03};
+    vector<vector<double>> covarianceMatrix = {{1.5, 0.5, 0.3}, {0.5, 1.8, 0.6}, {0.3, 0.6, 1.2}};
+    double upperBound = 0.6;
 
-    double riskFreeRate = 0.05;
-    double targetReturn = 0.1;
+    vector<double> weights = calculateOptimizedWeightsMVO(expectedReturn, covarianceMatrix, upperBound);
 
-    std::vector<double> weights = calculateOptimizedWeightsMVO(portfolio, riskFreeRate, targetReturn);
-
-    std::cout << "Optimized Weights:\n";
-    for (size_t i = 0; i < portfolio.size(); ++i) {
-        std::cout << portfolio[i].symbol << ": " << weights[i] << "\n";
+    cout << "Optimized Weights:\n";
+    for (size_t i = 0; i < expectedReturn.size(); ++i) {
+        cout << "Asset " << i + 1 << ": " << weights[i] << "\n";
     }
-
     return 0;
 }
